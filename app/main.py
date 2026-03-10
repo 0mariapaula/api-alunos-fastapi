@@ -67,3 +67,17 @@ def criar_aluno(aluno: AlunoCreate):
         }))
     finally:
         db.close()  # Fecha a sessão do banco de dados
+
+# Endpoint para listar todos os alunos
+@app.get ("/alunos")
+def listar_alunos():
+    db = SessionLocal() #ABRE A SESSÃO COM O BANCO DE DADOS (cria conexão com o banco)
+    try:
+        alunos = db.query(Aluno).all() #CONSULTA TODOS OS ALUNOS NO BANCO DE DADOS E ARMAZENA NA VARIÁVEL "alunos"
+
+        return JSONResponse(
+            content=jsonable_encoder(alunos)
+        )
+    
+    finally:
+        db.close()
