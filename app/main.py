@@ -81,3 +81,27 @@ def listar_alunos():
     
     finally:
         db.close()
+
+from fastapi import HTTPException
+
+@app.get("/alunos/{id}")
+def buscar_aluno(id: int):
+    db = SessionLocal()
+
+    try:
+        aluno = db.query(Aluno).filter(Aluno.id == id).first()
+
+        if aluno is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Aluno não encontrado"
+            )
+
+        return {
+            "id": aluno.id,
+            "nome": aluno.nome,
+            "idade": aluno.idade
+        }
+
+    finally:
+        db.close()
