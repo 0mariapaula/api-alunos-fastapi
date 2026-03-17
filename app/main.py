@@ -105,3 +105,29 @@ def buscar_aluno(id: int):
 
     finally:
         db.close()
+
+from fastapi import HTTPException
+
+@app.put("/alunos/{id}")
+def atualizar_aluno(id: int, aluno: AlunoCreate):
+    db = SessionLocal()
+
+    try:
+        aluno_db = db.query(Aluno).filter(Aluno.id == id).first()
+
+        if aluno_db is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Aluno não encontrado"
+            )
+
+        aluno_db.nome = aluno.nome
+        aluno_db.idade = aluno.idade
+
+        db.commit()
+        db.refresh(aluno_db)
+
+        return
+
+    finally:
+        db.close()
