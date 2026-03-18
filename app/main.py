@@ -131,3 +131,25 @@ def atualizar_aluno(id: int, aluno: AlunoCreate):
 
     finally:
         db.close()
+
+from fastapi import HTTPException
+@app.delete("/alunos/{id}")
+def deletar_aluno(id: int):
+    db = SessionLocal()
+
+    try:
+        aluno_db = db.query(Aluno).filter(Aluno.id == id).first()
+
+        if aluno_db is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Aluno não encontrado"
+            )
+
+        db.delete(aluno_db)
+        db.commit()
+
+        return
+
+    finally:
+        db.close()
