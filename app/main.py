@@ -114,42 +114,17 @@ def atualizar_aluno(id: int, aluno: AlunoCreate):
 
     try:
         aluno_db = db.query(Aluno).filter(Aluno.id == id).first()
+        from fastapi import FastAPI
+        from app.database import engine, Base
+        from app.routes.alunos import router as alunos_router
 
-        if aluno_db is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Aluno não encontrado"
-            )
+        app = FastAPI()
+        Base.metadata.create_all(bind=engine)
 
-        aluno_db.nome = aluno.nome
-        aluno_db.idade = aluno.idade
+        # Health check
+        @app.get("/health")
+        def health():
+            return {"status": "ok"}
 
-        db.commit()
-        db.refresh(aluno_db)
-
-        return
-
-    finally:
-        db.close()
-
-from fastapi import HTTPException
-@app.delete("/alunos/{id}")
-def deletar_aluno(id: int):
-    db = SessionLocal()
-
-    try:
-        aluno_db = db.query(Aluno).filter(Aluno.id == id).first()
-
-        if aluno_db is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Aluno não encontrado"
-            )
-
-        db.delete(aluno_db)
-        db.commit()
-
-        return
-
-    finally:
-        db.close()
+        # Inclui as rotas de alunos
+        app.include_router(alunos_router)
