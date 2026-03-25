@@ -1,9 +1,16 @@
-from fastapi import FastAPI  # Importa o FastAPI corretamente
+
+from fastapi import FastAPI, HTTPException  # Importa o FastAPI corretamente
 from app.database import engine, SessionLocal, Base  # Importa objetos do banco
 from app.models import Aluno  # Importa o modelo Aluno
 from app.schemas import AlunoCreate  # Importa o schema de criação
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
+from app.routes.alunos import router as alunos_router
+
+app = FastAPI()  # Instancia o app FastAPI
+
+# Cria as tabelas no banco de dados, se não existirem
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()  # Instancia o app FastAPI
 
@@ -47,26 +54,27 @@ def health():
     return {"status": "ok"}
 
 # Endpoint para criar um novo aluno
-@app.post("/alunos")
-def criar_aluno(aluno: AlunoCreate):
-    db = SessionLocal()  # Cria uma sessão com o banco de dados
+
+@app.put("/alunos/{id}")
+def atualizar_aluno(id: int, aluno: AlunoCreate):
+    db = SessionLocal()
     try:
-        # Cria um novo objeto Aluno a partir dos dados recebidos
-        novo_aluno = Aluno(
-            nome=aluno.nome,
-            idade=aluno.idade
-        )
-        db.add(novo_aluno)  # Adiciona o aluno à sessão
-        db.commit()  # Salva as alterações no banco
-        db.refresh(novo_aluno)  # Atualiza o objeto com o ID gerado
-        # Retorna os dados do novo aluno em formato JSON
-        return JSONResponse(content=jsonable_encoder({
-            "id": novo_aluno.id,
-            "nome": novo_aluno.nome,
-            "idade": novo_aluno.idade
-        }))
+        aluno_db = db.query(Aluno).filter(Aluno.id == id).first()
+        if aluno_db is None:
+            raise HTTPException(status_code=404, detail="Aluno não encontrado")
+        aluno_db.nome = aluno.nome
+        aluno_db.idade = aluno.idade
+        db.commit()
+        db.refresh(aluno_db)
+        return {
+            "id": aluno_db.id,
+            "nome": aluno_db.nome,
+            "idade": aluno_db.idade
+        }
     finally:
-        db.close()  # Fecha a sessão do banco de dados
+        db.close()
+
+# Inclui as rotas de alunos
 
 # Endpoint para listar todos os alunos
 @app.get ("/alunos")
@@ -106,25 +114,5 @@ def buscar_aluno(id: int):
     finally:
         db.close()
 
-from fastapi import HTTPException
-
-@app.put("/alunos/{id}")
-def atualizar_aluno(id: int, aluno: AlunoCreate):
-    db = SessionLocal()
-
-    try:
-        aluno_db = db.query(Aluno).filter(Aluno.id == id).first()
-        from fastapi import FastAPI
-        from app.database import engine, Base
-        from app.routes.alunos import router as alunos_router
-
-        app = FastAPI()
-        Base.metadata.create_all(bind=engine)
-
-        # Health check
-        @app.get("/health")
-        def health():
-            return {"status": "ok"}
-
-        # Inclui as rotas de alunos
-        app.include_router(alunos_router)
+# Inclui as rotas de alunos
+app.include_router(alunos_router)
